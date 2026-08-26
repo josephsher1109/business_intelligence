@@ -3,7 +3,7 @@
 **Name:** Joseph Sher
 **Semester:** Fall 2026
 
-* \*\*Tools this semester:\*\* R, RStudio, Git
+* \*\*Tools this semester:\*\* R, RStudio, Git, Tableau
 
 # Course Topics
 
