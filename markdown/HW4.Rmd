@@ -1,0 +1,57 @@
+---
+title: "HW4"
+author: "Joseph Sher"
+date: "2026-09-06"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+con = DBI::dbConnect(RSQLite::SQLite(), "../data/midwest_airbnb.db")
+listings = DBI::dbReadTable(con, "listings")
+```
+
+# Question 1: How many listings (rows)
+```{r}
+str(listings)
+```
+# Question 2: Number of Listings for Columbus
+```{r}
+sum(listings$city == "Columbus")
+
+columbusdata <- subset.data.frame(listings, city == "Columbus")
+nrow(columbusdata)
+```
+
+# Question 3: Most Expensive Listing in Chicago
+```{r}
+chicagodata <- subset.data.frame(listings, city == "Chicago")
+maxprice <- max(chicagodata$price)
+maxprice
+
+chicagomaxhouse <- chicagodata$name[which.max(chicagodata$price)]
+chicagomaxhouse
+```
+
+# Question 4: Distinct Values in Neighborhood Column
+```{r}
+chicagoneighborhoods <- unique(chicagodata$neighbourhood)
+length(chicagoneighborhoods)
+```
+# Question 5: Listings from Super Host
+```{r}
+superhostdata <- subset.data.frame(listings, host_is_superhost == "t")
+nrow(superhostdata)
+
+sum(listings$host_is_superhost == "t", na.rm = TRUE)
+```
+# Question 6: Listings more than $1,000 per night
+```{r}
+listings[listings$price > 1000, ]
+```
+
+
+
