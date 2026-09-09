@@ -20,6 +20,9 @@ str(listings)
 ```
 # Question 2: Number of Listings for Columbus
 ```{r}
+columbus <- listings[listings$city == "Columbus", ]
+columbus 
+
 sum(listings$city == "Columbus")
 
 columbusdata <- subset.data.frame(listings, city == "Columbus")
@@ -28,6 +31,9 @@ nrow(columbusdata)
 
 # Question 3: Most Expensive Listing in Chicago
 ```{r}
+chicago <- listings[listings$city == "Chicago", ]
+max(chicago$price)
+
 chicagodata <- subset.data.frame(listings, city == "Chicago")
 maxprice <- max(chicagodata$price)
 maxprice
