@@ -26,6 +26,7 @@ campus = jsonlite::fromJSON(
 
 names(campus)
 
+
 fsb = campus$"Farmer"
 #saving the named Farmer list in FSB
 ## Equivalent campus[["Farmer"]] or campus[[5]] by position
