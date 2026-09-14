@@ -1,3 +1,5 @@
 rmarkdown.pdf
 /.Rproj.user
 .Renviron
+/.shinychat
+/shiny_bookmarks
