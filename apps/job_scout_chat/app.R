@@ -1,7 +1,7 @@
 # apps/job_scout_chat/app.R
 library(querychat)
 
-con = DBI::dbConnect(RSQLite::SQLite(), "data/scout.db")
+con = DBI::dbConnect(RSQLite::SQLite(), "../data/scout.db")
 
 client = ellmer::chat_openai(
   model  = "gpt-5.6-luna",
