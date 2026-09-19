@@ -57,24 +57,39 @@ chicago_listings_more10
 chicago_percentage = chicago_listings_more10/chicagoa2
 chicago_percentage * 100
 
-# FOr all cities:
+# For Columbus and Twin Cities for essay Q12:
 
-b2_a2 = listings |>
-  dplyr::group_by(host_id) |>
-  dplyr::summarize(host_listings = dplyr::n(), .groups = "drop") |>
-  dplyr::filter(host_listings >= 10) |>
-  dplyr::inner_join(listings, by = "host_id") |>
-  dplyr::count(city, name = "listings_10plus") |>
-  dplyr::left_join(
-    listings |>
-      dplyr::count(city, name = "total_listings"),
-    by = "city"
-  ) |>
-  dplyr::mutate(
-    percent_listings_10plus = listings_10plus / total_listings * 100
-  )
+b2_a2_columbusall = listings_with_host |>
+  dplyr::filter(city == "Columbus") |>
+  dplyr::summarise(total_columbus = dplyr::n())
+b2_a2_columbusall
 
-b2_a2
+b2_a2_columbus_more10 = listings_with_host |>
+  dplyr::filter(city == "Columbus", n_listings >=10) |>
+  dplyr::summarise(columbus_10 = dplyr::n())
+b2_a2_columbus_more10
+
+columbus_pct = (b2_a2_columbus_more10/b2_a2_columbusall)*100
+
+round(columbus_pct,2)
+
+b2_a2_twincities_all = listings_with_host |>
+  dplyr::filter(city == "Twin Cities") |>
+  dplyr::summarise(total_tc = dplyr::n())
+b2_a2_twincities_all
+
+b2_a2_tc_more10 = listings_with_host |>
+  dplyr::filter(city == "Twin Cities", n_listings >=10) |>
+  dplyr::summarise(tc_10 = dplyr::n())
+b2_a2_tc_more10
+
+tcs_pct = (b2_a2_tc_more10/b2_a2_twincities_all)*100
+
+round(tcs_pct,2)
+  
+  
+  
+
 ```
 
 ## Task 2: Value for a Family of 4
