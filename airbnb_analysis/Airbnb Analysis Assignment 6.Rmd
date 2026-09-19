@@ -155,29 +155,13 @@ columbustop10 = concentration |>
 columbustop10
 
 # For all cities:
-b2_a5 = listings |>
-  dplyr::group_by(city) |>
-  dplyr::arrange(
-    dplyr::desc(estimated_revenue_l365d),
-    .by_group = TRUE
-  ) |>
-  dplyr::mutate(
-    top10 = dplyr::row_number() <= ceiling(0.10 * dplyr::n())
-  ) |>
-  dplyr::summarize(
-    top10_revenue = sum(
-      estimated_revenue_l365d[top10],
-      na.rm = TRUE
-    ),
-    total_revenue = sum(
-      estimated_revenue_l365d,
-      na.rm = TRUE
-    ),
-    percent_revenue_top10 = top10_revenue / total_revenue * 100,
-    .groups = "drop"
-  )
+chicagotop10 = concentration |>
+  dplyr::filter(city == "Chicago")
+chicagotop10
 
-b2_a5
+tctop10 = concentration |>
+  dplyr::filter(city == "Twin Cities")
+tctop10
 
 ```
 
