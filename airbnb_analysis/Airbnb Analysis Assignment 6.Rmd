@@ -37,7 +37,7 @@ listings_with_host
 
 # A1 - Hosts with 10 + listings
 hostsa1 = host_counts |>
-  dplyr::filter(n_listings >= 10) |>
+  dplyr::filter(n_listings >= 10)|>
   dplyr::summarise(
     n_host = dplyr::n()
   )
@@ -46,12 +46,12 @@ hostsa1
 # A2 - Chicago
 chicagoa2 = listings_with_host |>
   dplyr::filter(city == "Chicago") |>
-  nrow()
+  dplyr::summarise(nchicago = dplyr::n())
 chicagoa2
 
 chicago_listings_more10 = listings_with_host |>
   dplyr::filter(city == "Chicago",n_listings >=10)|>
-  nrow()
+  dplyr::summarise(nchicagomore10 = dplyr::n())
 chicago_listings_more10
 
 chicago_percentage = chicago_listings_more10/chicagoa2
