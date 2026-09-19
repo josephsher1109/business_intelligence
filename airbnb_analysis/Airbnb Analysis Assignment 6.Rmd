@@ -238,10 +238,12 @@ super_host_city
 
 # A7 Premium
 super_host_premium = super_host_city |>
-  dplyr::select(city, host_is_superhost, median_price)|>
-  tidyr::pivot_wider(names_from = host_is_superhost, values_from = median_price) |>
-  dplyr::mutate(premium = t-f)
+  dplyr::group_by(city) |>
+  dplyr::summarise(
+    premium = median_price[host_is_superhost=="t"]-median_price[host_is_superhost=="f"]
+  )
 super_host_premium
+
 ```
 
 ## Task 8: What the join lost
