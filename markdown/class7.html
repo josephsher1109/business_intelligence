@@ -1609,8 +1609,357 @@ jobs = postings |&gt;
     days_open = as.numeric(last_seen_at - posted_at)
     )</code></pre>
 </div>
+<div id="demo" class="section level1">
+<h1>Demo</h1>
+<pre class="r"><code>con = DBI::dbConnect(RSQLite::SQLite(), &quot;../data/scout.db&quot;)
+postings = DBI::dbReadTable(con, &quot;scout_postings&quot;) |&gt; tibble::as_tibble()
+DBI::dbDisconnect(con)
 
-<div id="rmd-source-code">LS0tDQp0aXRsZTogIkNsYXNzLTA3Ig0KYXV0aG9yOiAiSm9zZXBoIFNoZXIiDQpkYXRlOiAiMjAyNi0wOS0xNiINCm91dHB1dDogDQogIGh0bWxfZG9jdW1lbnQ6DQogICAgdG9jOiBUUlVFDQogICAgdG9jX2Zsb2F0OiBUUlVFDQogICAgbnVtYmVyZWRfc2VjdGlvbnM6IFRSVUUNCiAgICBjb2RlX2Rvd25sb2FkOiBUUlVFDQogICAgY29kZV9mb2xkaW5nOiBzaG93DQotLS0NCg0KYGBge3Igc2V0dXAsIGluY2x1ZGU9RkFMU0V9DQprbml0cjo6b3B0c19jaHVuayRzZXQoZWNobyA9IFRSVUUpDQpgYGANCg0KDQojIEFuc3dlcmluZyB0aGUgUXVlc3Rpb24gQWJvdXQgRGF0YSBUeXBlcw0KYGBge3IgZGF0YSB0eXBlc30NCmNvbiA9IERCSTo6ZGJDb25uZWN0KFJTUUxpdGU6OlNRTGl0ZSgpLCAiLi4vZGF0YS9zY291dC5kYiIpDQpwb3N0aW5ncyA9IERCSTo6ZGJSZWFkVGFibGUoY29uLCAic2NvdXRfcG9zdGluZ3MiKSB8PiB0aWJibGU6OmFzX3RpYmJsZSgpDQpEQkk6OmRiRGlzY29ubmVjdChjb24pDQoNCmpvYnMgPSBwb3N0aW5ncyB8Pg0KICBkcGx5cjo6c2VsZWN0KGNvbXBhbnksIGxvY2F0aW9uX3N0YXRlLCByZW1vdGUsIHBvc3RlZF9hdCwgbGFzdF9zZWVuX2F0KSB8Pg0KICBkcGx5cjo6ZmlsdGVyKHJlbW90ZSA9PSAxKSB8Pg0KICBkcGx5cjo6bXV0YXRlKA0KICAgIHBvc3RlZF9hdD0gYXMuRGF0ZShwb3N0ZWRfYXQpLA0KICAgIGxhc3Rfc2Vlbl9hdCA9IGFzLkRhdGUobGFzdF9zZWVuX2F0KSwNCiAgICBkYXlzX29wZW4gPSBhcy5udW1lcmljKGxhc3Rfc2Vlbl9hdCAtIHBvc3RlZF9hdCkNCiAgICApDQoNCmBgYA0KDQo=</div>
+jobs = postings |&gt;
+  dplyr::select(company, title, location_state, remote, category, posted_at, last_seen_at) |&gt;
+  dplyr::mutate(dplyr::across(dplyr::ends_with(&quot;_at&quot;), as.Date),
+                days_open = as.numeric(last_seen_at - posted_at))
+
+jobs</code></pre>
+<pre><code>## # A tibble: 1,891 × 8
+##    company          title location_state remote category posted_at  last_seen_at
+##    &lt;chr&gt;            &lt;chr&gt; &lt;chr&gt;           &lt;int&gt; &lt;chr&gt;    &lt;date&gt;     &lt;date&gt;      
+##  1 UnitedHealth Gr… Data… GA                  0 fulltime 2026-07-29 2026-07-29  
+##  2 Anza Mortgage I… Busi… NC                  0 fulltime 2026-07-29 2026-08-02  
+##  3 CoServ           Busi… TX                  0 fulltime 2026-07-29 2026-07-29  
+##  4 Canva            Sale… CA                  0 fulltime 2026-07-29 2026-07-29  
+##  5 Canva            Sale… TX                  0 fulltime 2026-07-29 2026-08-02  
+##  6 GFL Environment… HR D… NC                  0 fulltime 2026-07-29 2026-08-02  
+##  7 Uline            Busi… IL                  0 fulltime 2026-07-29 2026-08-02  
+##  8 RaceTrac         Race… GA                  0 fulltime 2026-07-29 2026-07-29  
+##  9 Elevance Health  Busi… IN                  0 fulltime 2026-07-29 2026-07-29  
+## 10 Touro Universit… Data… CA                  0 fulltime 2026-07-29 2026-08-02  
+## # ℹ 1,881 more rows
+## # ℹ 1 more variable: days_open &lt;dbl&gt;</code></pre>
+<pre class="r"><code>#Q1 - which cat is remote friendly
+# To answer that, the logic would be as follows&quot;
+# - Find the number of jobs per category
+# - Normalize the number of remote jobs by dividing by the total jobs
+
+jobs |&gt;
+  # I want to move from unit of analysis being a job posting to a category
+  dplyr::group_by(category)|&gt;
+  dplyr::summarise(
+    postings = dplyr::n(),
+    remote_share = mean(remote)
+  )</code></pre>
+<pre><code>## # A tibble: 3 × 3
+##   category   postings remote_share
+##   &lt;chr&gt;         &lt;int&gt;        &lt;dbl&gt;
+## 1 federal         548       0     
+## 2 fulltime       1257       0.100 
+## 3 internship       86       0.0116</code></pre>
+<pre class="r"><code># Today: dplyr, on the data frame from dbReadTable()
+postings |&gt;
+  dplyr::filter(remote == 1) |&gt;
+  dplyr::count(company, sort = TRUE) |&gt;
+  head(10)</code></pre>
+<pre><code>## # A tibble: 10 × 2
+##    company                                  n
+##    &lt;chr&gt;                                &lt;int&gt;
+##  1 Gainwell Technologies LLC                5
+##  2 The Home Depot                           5
+##  3 Burjline Builders                        4
+##  4 Jerry.ai                                 4
+##  5 Centene Corporation                      3
+##  6 OhioHealth                               3
+##  7 TEKsystems                               3
+##  8 CACI International                       2
+##  9 CVS Health                               2
+## 10 Chenega Services &amp; Federal Solutions     2</code></pre>
+<pre class="r"><code># Among full-time postings, which states have the highest remote shares
+ft_remote = postings |&gt;
+  dplyr::group_by(category,location_state) |&gt;
+  dplyr::summarise(postings = dplyr::n(), remote_share = mean(remote) |&gt; round(digits = 2)
+  ) |&gt;
+  dplyr::arrange(dplyr::desc(remote_share)) |&gt;
+  na.omit()</code></pre>
+<pre><code>## `summarise()` has regrouped the output.
+## ℹ Summaries were computed grouped by category and location_state.
+## ℹ Output is grouped by category.
+## ℹ Use `summarise(.groups = &quot;drop_last&quot;)` to silence this message.
+## ℹ Use `summarise(.by = c(category, location_state))` for per-operation grouping
+##   (`?dplyr::dplyr_by`) instead.</code></pre>
+<pre class="r"><code>ft_remote</code></pre>
+<pre><code>## # A tibble: 68 × 4
+## # Groups:   category [3]
+##    category location_state postings remote_share
+##    &lt;chr&gt;    &lt;chr&gt;             &lt;int&gt;        &lt;dbl&gt;
+##  1 fulltime OH                   95         0.18
+##  2 fulltime NC                   98         0.13
+##  3 fulltime KY                   18         0.11
+##  4 fulltime PA                   79         0.11
+##  5 fulltime IL                  125         0.1 
+##  6 fulltime IN                   52         0.1 
+##  7 fulltime NY                  156         0.1 
+##  8 fulltime TX                  248         0.1 
+##  9 fulltime GA                  106         0.08
+## 10 fulltime CA                  272         0.06
+## # ℹ 58 more rows</code></pre>
+<pre class="r"><code># notes logic
+jobs |&gt;
+  dplyr::filter(category == &quot;fulltime&quot;) |&gt;
+  dplyr::group_by(location_state) |&gt;
+  dplyr::summarise(
+    postings = dplyr::n(),
+    remote_share = mean(remote) |&gt; round(digits = 2)
+  ) |&gt;
+  dplyr::arrange(dplyr::desc(remote_share))|&gt;
+  na.omit()</code></pre>
+<pre><code>## # A tibble: 11 × 3
+##    location_state postings remote_share
+##    &lt;chr&gt;             &lt;int&gt;        &lt;dbl&gt;
+##  1 OH                   95         0.18
+##  2 NC                   98         0.13
+##  3 KY                   18         0.11
+##  4 PA                   79         0.11
+##  5 IL                  125         0.1 
+##  6 IN                   52         0.1 
+##  7 NY                  156         0.1 
+##  8 TX                  248         0.1 
+##  9 GA                  106         0.08
+## 10 CA                  272         0.06
+## 11 MD                    1         0</code></pre>
+</div>
+<div id="select" class="section level1">
+<h1>Select</h1>
+<pre class="r"><code>con = DBI::dbConnect(RSQLite::SQLite(), &quot;../data/scout.db&quot;)
+postings = DBI::dbReadTable(con, &quot;scout_postings&quot;) |&gt; tibble::as_tibble()
+DBI::dbDisconnect(con)
+
+# Select impacts only the columns
+jobs = postings |&gt;
+  dplyr::select(company, title, location_state, remote, category, posted_at, last_seen_at)
+jobs</code></pre>
+<pre><code>## # A tibble: 1,891 × 7
+##    company           title location_state remote category posted_at last_seen_at
+##    &lt;chr&gt;             &lt;chr&gt; &lt;chr&gt;           &lt;int&gt; &lt;chr&gt;    &lt;chr&gt;     &lt;chr&gt;       
+##  1 UnitedHealth Gro… Data… GA                  0 fulltime 2026-07-… 2026-07-29T…
+##  2 Anza Mortgage In… Busi… NC                  0 fulltime 2026-07-… 2026-08-02T…
+##  3 CoServ            Busi… TX                  0 fulltime 2026-07-… 2026-07-29T…
+##  4 Canva             Sale… CA                  0 fulltime 2026-07-… 2026-07-29T…
+##  5 Canva             Sale… TX                  0 fulltime 2026-07-… 2026-08-02T…
+##  6 GFL Environmenta… HR D… NC                  0 fulltime 2026-07-… 2026-08-02T…
+##  7 Uline             Busi… IL                  0 fulltime 2026-07-… 2026-08-02T…
+##  8 RaceTrac          Race… GA                  0 fulltime 2026-07-… 2026-07-29T…
+##  9 Elevance Health   Busi… IN                  0 fulltime 2026-07-… 2026-07-29T…
+## 10 Touro University… Data… CA                  0 fulltime 2026-07-… 2026-08-02T…
+## # ℹ 1,881 more rows</code></pre>
+</div>
+<div id="filter" class="section level1">
+<h1>Filter</h1>
+<pre class="r"><code># Impacts only the rows
+
+c(one_test = jobs |&gt; dplyr::filter(remote == 1) |&gt; nrow(),
+  both     = jobs |&gt; dplyr::filter(remote == 1, location_state == &quot;OH&quot;) |&gt; nrow(),
+  either   = jobs |&gt; dplyr::filter(remote == 1 | category == &quot;internship&quot;) |&gt; nrow(),
+  in_set   = jobs |&gt; dplyr::filter(location_state %in% c(&quot;OH&quot;, &quot;IN&quot;, &quot;KY&quot;)) |&gt; nrow())</code></pre>
+<pre><code>## one_test     both   either   in_set 
+##      127       18      212      212</code></pre>
+</div>
+<div id="mutate-and-arrange" class="section level1">
+<h1>Mutate and Arrange</h1>
+<pre class="r"><code>jobs = jobs |&gt;
+  dplyr::mutate(days_open = as.numeric(as.Date(last_seen_at) - as.Date(posted_at)))
+
+jobs |&gt; dplyr::arrange(dplyr::desc(days_open)) |&gt; dplyr::select(company, title, days_open)</code></pre>
+<pre><code>## # A tibble: 1,891 × 3
+##    company                        title                                days_open
+##    &lt;chr&gt;                          &lt;chr&gt;                                    &lt;dbl&gt;
+##  1 Veterans Health Administration Clinical Laboratory Scientist               30
+##  2 Buxton                         Data Analyst                                30
+##  3 HHC                            Business Intelligence Developer II          30
+##  4 International SOS              Data Analyst                                30
+##  5 The Hershey Company            Analyst Business Intelligence Autom…        30
+##  6 Oracle                         Systems Analyst 1-IT                        29
+##  7 Olgoonik Corporation           Supply Systems Analyst - GDEC TO29          29
+##  8 Amazon                         Business Analyst II - AMZ26512.2            27
+##  9 Indian Health Service          Clinical Laboratory Scientist               27
+## 10 natgridProd                    Information Systems Auditor                 27
+## # ℹ 1,881 more rows</code></pre>
+<pre class="r"><code>jobs = jobs |&gt; dplyr::mutate(dplyr::across(dplyr::ends_with(&quot;_at&quot;), as.Date))    # both dates at once
+jobs |&gt; dplyr::summarize(dplyr::across(dplyr::where(is.numeric), mean))</code></pre>
+<pre><code>## # A tibble: 1 × 2
+##   remote days_open
+##    &lt;dbl&gt;     &lt;dbl&gt;
+## 1 0.0672      4.21</code></pre>
+</div>
+<div id="group-by-and-summarize" class="section level1">
+<h1>Group By and Summarize</h1>
+<pre class="r"><code>jobs |&gt;
+  dplyr::group_by(location_state) |&gt;
+  dplyr::summarize(postings = dplyr::n(), remote_share = mean(remote)) |&gt;
+  dplyr::arrange(dplyr::desc(postings))</code></pre>
+<pre><code>## # A tibble: 47 × 3
+##    location_state postings remote_share
+##    &lt;chr&gt;             &lt;int&gt;        &lt;dbl&gt;
+##  1 CA                  328       0.0457
+##  2 TX                  281       0.0890
+##  3 NY                  183       0.0874
+##  4 IL                  146       0.0890
+##  5 GA                  121       0.0661
+##  6 OH                  120       0.15  
+##  7 NC                  109       0.119 
+##  8 PA                   96       0.0938
+##  9 IN                   67       0.0746
+## 10 DC                   58       0     
+## # ℹ 37 more rows</code></pre>
+</div>
+<div id="join" class="section level1">
+<h1>Join</h1>
+<pre class="r"><code>states = tibble::tibble(location_state = state.abb,
+                        state_name = state.name,
+                        region = as.character(state.region))
+
+jobs |&gt;
+  dplyr::left_join(states, by = &quot;location_state&quot;) |&gt;
+  dplyr::group_by(region) |&gt;
+  dplyr::summarize(postings = dplyr::n(), remote_share = mean(remote)) |&gt;
+  dplyr::arrange(dplyr::desc(postings))</code></pre>
+<pre><code>## # A tibble: 5 × 3
+##   region        postings remote_share
+##   &lt;chr&gt;            &lt;int&gt;        &lt;dbl&gt;
+## 1 South              711       0.0675
+## 2 West               420       0.0357
+## 3 North Central      373       0.0965
+## 4 Northeast          299       0.0836
+## 5 &lt;NA&gt;                88       0.0341</code></pre>
+<pre class="r"><code>jobs |&gt; dplyr::count(location_state) |&gt; dplyr::anti_join(states, by = &quot;location_state&quot;)</code></pre>
+<pre><code>## # A tibble: 2 × 2
+##   location_state     n
+##   &lt;chr&gt;          &lt;int&gt;
+## 1 DC                58
+## 2 &lt;NA&gt;              30</code></pre>
+</div>
+<div id="airbnb" class="section level1">
+<h1>Airbnb</h1>
+<pre class="r"><code>con = DBI::dbConnect(RSQLite::SQLite(), &quot;../data/midwest_airbnb.db&quot;)
+listings = DBI::dbReadTable(con, &quot;listings&quot;) |&gt;
+  tibble::as_tibble()
+DBI::dbDisconnect(con)
+dplyr::glimpse(listings)</code></pre>
+<pre><code>## Rows: 14,887
+## Columns: 29
+## $ city                    &lt;chr&gt; &quot;Chicago&quot;, &quot;Chicago&quot;, &quot;Chicago&quot;, &quot;Chicago&quot;, &quot;C…
+## $ snapshot_date           &lt;chr&gt; &quot;2026-07-20&quot;, &quot;2026-07-20&quot;, &quot;2026-07-20&quot;, &quot;202…
+## $ id                      &lt;chr&gt; &quot;2384&quot;, &quot;7126&quot;, &quot;10945&quot;, &quot;12140&quot;, &quot;71930&quot;, &quot;94…
+## $ name                    &lt;chr&gt; &quot;Hyde Park: 5 minute walk to Obama Presidentia…
+## $ host_id                 &lt;chr&gt; &quot;2613&quot;, &quot;17928&quot;, &quot;33004&quot;, &quot;46734&quot;, &quot;334241&quot;, &quot;…
+## $ host_name               &lt;chr&gt; &quot;Rebecca&quot;, &quot;Sarah&quot;, &quot;Elizabeth&quot;, &quot;Shar And Rob…
+## $ host_since              &lt;chr&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA…
+## $ host_is_superhost       &lt;chr&gt; &quot;t&quot;, &quot;t&quot;, &quot;t&quot;, &quot;f&quot;, &quot;t&quot;, &quot;f&quot;, &quot;t&quot;, &quot;t&quot;, &quot;t&quot;, &quot;…
+## $ neighbourhood           &lt;chr&gt; &quot;Hyde Park&quot;, &quot;West Town&quot;, &quot;Lincoln Park&quot;, &quot;Lin…
+## $ latitude                &lt;dbl&gt; 41.78790, 41.90138, 41.91196, 41.92385, 41.896…
+## $ longitude               &lt;dbl&gt; -87.58780, -87.68153, -87.63981, -87.64910, -8…
+## $ property_type           &lt;chr&gt; &quot;Private room in condo&quot;, &quot;Entire rental unit&quot;,…
+## $ room_type               &lt;chr&gt; &quot;Private room&quot;, &quot;Entire home/apt&quot;, &quot;Entire hom…
+## $ accommodates            &lt;int&gt; 1, 2, 4, 3, 2, 1, 8, 10, 5, 2, 1, 2, 2, 2, 1, …
+## $ bedrooms                &lt;dbl&gt; NA, 1, 2, 1, NA, 1, 3, 4, 2, 1, 1, 2, NA, 2, 1…
+## $ beds                    &lt;dbl&gt; 1, 1, 2, 1, 1, 1, 3, 4, 3, 1, 1, 1, 1, NA, NA,…
+## $ bathrooms_text          &lt;chr&gt; &quot;1 shared bath&quot;, &quot;1 bath&quot;, &quot;1 bath&quot;, &quot;1 privat…
+## $ price                   &lt;dbl&gt; 171.33, 126.00, 278.50, 447.00, 131.00, 245.33…
+## $ minimum_nights          &lt;int&gt; 3, 2, 2, 2, 2, 2, 32, 32, 2, 32, 32, 32, 2, 18…
+## $ availability_365        &lt;int&gt; 306, 264, 271, 23, 218, 132, 360, 356, 290, 17…
+## $ number_of_reviews       &lt;int&gt; 268, 630, 155, 22, 161, 50, 77, 87, 750, 322, …
+## $ number_of_reviews_ltm   &lt;int&gt; 13, 46, 30, 4, 25, 14, 0, 0, 46, 2, 1, 3, 24, …
+## $ first_review            &lt;chr&gt; &quot;2015-01-09&quot;, &quot;2009-07-03&quot;, &quot;2014-04-28&quot;, &quot;201…
+## $ last_review             &lt;chr&gt; &quot;2026-06-08&quot;, &quot;2026-06-30&quot;, &quot;2026-06-21&quot;, &quot;202…
+## $ review_scores_rating    &lt;dbl&gt; 4.99, 4.74, 4.78, 4.95, 4.89, 4.90, 4.78, 4.78…
+## $ reviews_per_month       &lt;dbl&gt; 1.91, 3.04, 1.04, 0.16, 0.87, 1.03, 0.59, 0.64…
+## $ instant_bookable        &lt;chr&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA…
+## $ estimated_revenue_l365d &lt;dbl&gt; 13364, 32130, 50130, 10728, 19650, 20608, 0, 0…
+## $ amenities_count         &lt;int&gt; 47, 41, 49, 27, 43, 37, 35, 34, 77, 39, 36, 36…</code></pre>
+<pre class="r"><code># Listings per city
+listings_per_city = listings |&gt;
+  dplyr::group_by(city) |&gt;
+  dplyr::summarise(
+    n_listings = dplyr::n()
+  )
+listings_per_city</code></pre>
+<pre><code>## # A tibble: 3 × 2
+##   city        n_listings
+##   &lt;chr&gt;            &lt;int&gt;
+## 1 Chicago           7439
+## 2 Columbus          2587
+## 3 Twin Cities       4861</code></pre>
+<pre class="r"><code>listings |&gt;
+  dplyr::count(city) #count does group by and then n()</code></pre>
+<pre><code>## # A tibble: 3 × 2
+##   city            n
+##   &lt;chr&gt;       &lt;int&gt;
+## 1 Chicago      7439
+## 2 Columbus     2587
+## 3 Twin Cities  4861</code></pre>
+<pre class="r"><code># the other option is to simply count the number of times each city occurred in col city
+table(listings$city) # returns a named vector vs. above we get a data.frame/tibble</code></pre>
+<pre><code>## 
+##     Chicago    Columbus Twin Cities 
+##        7439        2587        4861</code></pre>
+<pre class="r"><code># For entire homes that sleep 4 or more, what is the median price per city
+entire_sleeps4 = listings |&gt;
+  dplyr::filter(room_type == &quot;Entire home/apt&quot;, accommodates &gt;=4)
+
+median_price_city = entire_sleeps4 |&gt;
+  dplyr::group_by(city) |&gt;
+  dplyr::summarise(
+    median_price = median(price)
+  )
+median_price_city</code></pre>
+<pre><code>## # A tibble: 3 × 2
+##   city        median_price
+##   &lt;chr&gt;              &lt;dbl&gt;
+## 1 Chicago             312 
+## 2 Columbus            240.
+## 3 Twin Cities         311</code></pre>
+<pre class="r"><code># Alternative
+listings |&gt;
+  dplyr::filter(room_type == &quot;Entire home/apt&quot;, accommodates &gt;=4) |&gt;
+  dplyr::group_by(city) |&gt;
+  dplyr::summarise(median_price = median(price))</code></pre>
+<pre><code>## # A tibble: 3 × 2
+##   city        median_price
+##   &lt;chr&gt;              &lt;dbl&gt;
+## 1 Chicago             312 
+## 2 Columbus            240.
+## 3 Twin Cities         311</code></pre>
+<pre class="r"><code># Cheapest listing per person
+listings |&gt;
+  dplyr::mutate(price_per_person = price/accommodates) |&gt;
+  dplyr::select(city, host_name,name, price, accommodates, price_per_person) |&gt;
+  dplyr::arrange(price_per_person) |&gt;
+  head(3)</code></pre>
+<pre><code>## # A tibble: 3 × 6
+##   city        host_name name                 price accommodates price_per_person
+##   &lt;chr&gt;       &lt;chr&gt;     &lt;chr&gt;                &lt;dbl&gt;        &lt;int&gt;            &lt;dbl&gt;
+## 1 Twin Cities Ana       Casa hermosa y tran…  4.17            7            0.596
+## 2 Twin Cities Tayva     Boho Modern Condo R… 12.3             6            2.06 
+## 3 Chicago     Dan       Entire Two Bedroom …  9.57            4            2.39</code></pre>
+<pre class="r"><code># Host names with most listings host_names are not unique, host_ids are
+host_counts = listings |&gt;
+  dplyr::count(host_name, host_id, sort = T) 
+host_counts</code></pre>
+<pre><code>## # A tibble: 6,970 × 3
+##    host_name                host_id       n
+##    &lt;chr&gt;                    &lt;chr&gt;     &lt;int&gt;
+##  1 Luxury Bookings Fze      446820235   104
+##  2 Evolve                   456378235    95
+##  3 Minnestay                24051954     89
+##  4 ⁨Cloud9⁩                   248760412    88
+##  5 RoomPicks                501999514    80
+##  6 Jessica                  28252451     78
+##  7 Matt                     391945218    73
+##  8 RoomPicks Accommodations 5615582      68
+##  9 Milan                    395498979    67
+## 10 Sara                     432234139    63
+## # ℹ 6,960 more rows</code></pre>
+</div>
+
+<div id="rmd-source-code">LS0tDQp0aXRsZTogIkNsYXNzLTA3Ig0KYXV0aG9yOiAiSm9zZXBoIFNoZXIiDQpkYXRlOiAiMjAyNi0wOS0xNiINCm91dHB1dDogDQogIGh0bWxfZG9jdW1lbnQ6DQogICAgdG9jOiBUUlVFDQogICAgdG9jX2Zsb2F0OiBUUlVFDQogICAgbnVtYmVyZWRfc2VjdGlvbnM6IFRSVUUNCiAgICBjb2RlX2Rvd25sb2FkOiBUUlVFDQogICAgY29kZV9mb2xkaW5nOiBzaG93DQotLS0NCg0KYGBge3Igc2V0dXAsIGluY2x1ZGU9RkFMU0V9DQprbml0cjo6b3B0c19jaHVuayRzZXQoZWNobyA9IFRSVUUpDQpgYGANCg0KDQojIEFuc3dlcmluZyB0aGUgUXVlc3Rpb24gQWJvdXQgRGF0YSBUeXBlcw0KYGBge3IgYW5zd2VyX3RvX3F9DQpjb24gPSBEQkk6OmRiQ29ubmVjdChSU1FMaXRlOjpTUUxpdGUoKSwgIi4uL2RhdGEvc2NvdXQuZGIiKQ0KcG9zdGluZ3MgPSBEQkk6OmRiUmVhZFRhYmxlKGNvbiwgInNjb3V0X3Bvc3RpbmdzIikgfD4gdGliYmxlOjphc190aWJibGUoKQ0KREJJOjpkYkRpc2Nvbm5lY3QoY29uKQ0KDQpqb2JzID0gcG9zdGluZ3MgfD4NCiAgZHBseXI6OnNlbGVjdChjb21wYW55LCBsb2NhdGlvbl9zdGF0ZSwgcmVtb3RlLCBwb3N0ZWRfYXQsIGxhc3Rfc2Vlbl9hdCkgfD4NCiAgZHBseXI6OmZpbHRlcihyZW1vdGUgPT0gMSkgfD4NCiAgZHBseXI6Om11dGF0ZSgNCiAgICBwb3N0ZWRfYXQ9IGFzLkRhdGUocG9zdGVkX2F0KSwNCiAgICBsYXN0X3NlZW5fYXQgPSBhcy5EYXRlKGxhc3Rfc2Vlbl9hdCksDQogICAgZGF5c19vcGVuID0gYXMubnVtZXJpYyhsYXN0X3NlZW5fYXQgLSBwb3N0ZWRfYXQpDQogICAgKQ0KDQpgYGANCg0KIyBEZW1vDQpgYGB7ciBkZW1vfQ0KY29uID0gREJJOjpkYkNvbm5lY3QoUlNRTGl0ZTo6U1FMaXRlKCksICIuLi9kYXRhL3Njb3V0LmRiIikNCnBvc3RpbmdzID0gREJJOjpkYlJlYWRUYWJsZShjb24sICJzY291dF9wb3N0aW5ncyIpIHw+IHRpYmJsZTo6YXNfdGliYmxlKCkNCkRCSTo6ZGJEaXNjb25uZWN0KGNvbikNCg0Kam9icyA9IHBvc3RpbmdzIHw+DQogIGRwbHlyOjpzZWxlY3QoY29tcGFueSwgdGl0bGUsIGxvY2F0aW9uX3N0YXRlLCByZW1vdGUsIGNhdGVnb3J5LCBwb3N0ZWRfYXQsIGxhc3Rfc2Vlbl9hdCkgfD4NCiAgZHBseXI6Om11dGF0ZShkcGx5cjo6YWNyb3NzKGRwbHlyOjplbmRzX3dpdGgoIl9hdCIpLCBhcy5EYXRlKSwNCiAgICAgICAgICAgICAgICBkYXlzX29wZW4gPSBhcy5udW1lcmljKGxhc3Rfc2Vlbl9hdCAtIHBvc3RlZF9hdCkpDQoNCmpvYnMNCg0KI1ExIC0gd2hpY2ggY2F0IGlzIHJlbW90ZSBmcmllbmRseQ0KIyBUbyBhbnN3ZXIgdGhhdCwgdGhlIGxvZ2ljIHdvdWxkIGJlIGFzIGZvbGxvd3MiDQojIC0gRmluZCB0aGUgbnVtYmVyIG9mIGpvYnMgcGVyIGNhdGVnb3J5DQojIC0gTm9ybWFsaXplIHRoZSBudW1iZXIgb2YgcmVtb3RlIGpvYnMgYnkgZGl2aWRpbmcgYnkgdGhlIHRvdGFsIGpvYnMNCg0Kam9icyB8Pg0KICAjIEkgd2FudCB0byBtb3ZlIGZyb20gdW5pdCBvZiBhbmFseXNpcyBiZWluZyBhIGpvYiBwb3N0aW5nIHRvIGEgY2F0ZWdvcnkNCiAgZHBseXI6Omdyb3VwX2J5KGNhdGVnb3J5KXw+DQogIGRwbHlyOjpzdW1tYXJpc2UoDQogICAgcG9zdGluZ3MgPSBkcGx5cjo6bigpLA0KICAgIHJlbW90ZV9zaGFyZSA9IG1lYW4ocmVtb3RlKQ0KICApDQoNCiMgVG9kYXk6IGRwbHlyLCBvbiB0aGUgZGF0YSBmcmFtZSBmcm9tIGRiUmVhZFRhYmxlKCkNCnBvc3RpbmdzIHw+DQogIGRwbHlyOjpmaWx0ZXIocmVtb3RlID09IDEpIHw+DQogIGRwbHlyOjpjb3VudChjb21wYW55LCBzb3J0ID0gVFJVRSkgfD4NCiAgaGVhZCgxMCkNCg0KIyBBbW9uZyBmdWxsLXRpbWUgcG9zdGluZ3MsIHdoaWNoIHN0YXRlcyBoYXZlIHRoZSBoaWdoZXN0IHJlbW90ZSBzaGFyZXMNCmZ0X3JlbW90ZSA9IHBvc3RpbmdzIHw+DQogIGRwbHlyOjpncm91cF9ieShjYXRlZ29yeSxsb2NhdGlvbl9zdGF0ZSkgfD4NCiAgZHBseXI6OnN1bW1hcmlzZShwb3N0aW5ncyA9IGRwbHlyOjpuKCksIHJlbW90ZV9zaGFyZSA9IG1lYW4ocmVtb3RlKSB8PiByb3VuZChkaWdpdHMgPSAyKQ0KICApIHw+DQogIGRwbHlyOjphcnJhbmdlKGRwbHlyOjpkZXNjKHJlbW90ZV9zaGFyZSkpIHw+DQogIG5hLm9taXQoKQ0KZnRfcmVtb3RlDQoNCiMgbm90ZXMgbG9naWMNCmpvYnMgfD4NCiAgZHBseXI6OmZpbHRlcihjYXRlZ29yeSA9PSAiZnVsbHRpbWUiKSB8Pg0KICBkcGx5cjo6Z3JvdXBfYnkobG9jYXRpb25fc3RhdGUpIHw+DQogIGRwbHlyOjpzdW1tYXJpc2UoDQogICAgcG9zdGluZ3MgPSBkcGx5cjo6bigpLA0KICAgIHJlbW90ZV9zaGFyZSA9IG1lYW4ocmVtb3RlKSB8PiByb3VuZChkaWdpdHMgPSAyKQ0KICApIHw+DQogIGRwbHlyOjphcnJhbmdlKGRwbHlyOjpkZXNjKHJlbW90ZV9zaGFyZSkpfD4NCiAgbmEub21pdCgpDQogIA0KYGBgDQoNCiMgU2VsZWN0IA0KYGBge3Igc2VsZWN0fQ0KY29uID0gREJJOjpkYkNvbm5lY3QoUlNRTGl0ZTo6U1FMaXRlKCksICIuLi9kYXRhL3Njb3V0LmRiIikNCnBvc3RpbmdzID0gREJJOjpkYlJlYWRUYWJsZShjb24sICJzY291dF9wb3N0aW5ncyIpIHw+IHRpYmJsZTo6YXNfdGliYmxlKCkNCkRCSTo6ZGJEaXNjb25uZWN0KGNvbikNCg0KIyBTZWxlY3QgaW1wYWN0cyBvbmx5IHRoZSBjb2x1bW5zDQpqb2JzID0gcG9zdGluZ3MgfD4NCiAgZHBseXI6OnNlbGVjdChjb21wYW55LCB0aXRsZSwgbG9jYXRpb25fc3RhdGUsIHJlbW90ZSwgY2F0ZWdvcnksIHBvc3RlZF9hdCwgbGFzdF9zZWVuX2F0KQ0Kam9icw0KYGBgDQoNCiMgRmlsdGVyDQpgYGB7ciBmaWx0ZXJ9DQojIEltcGFjdHMgb25seSB0aGUgcm93cw0KDQpjKG9uZV90ZXN0ID0gam9icyB8PiBkcGx5cjo6ZmlsdGVyKHJlbW90ZSA9PSAxKSB8PiBucm93KCksDQogIGJvdGggICAgID0gam9icyB8PiBkcGx5cjo6ZmlsdGVyKHJlbW90ZSA9PSAxLCBsb2NhdGlvbl9zdGF0ZSA9PSAiT0giKSB8PiBucm93KCksDQogIGVpdGhlciAgID0gam9icyB8PiBkcGx5cjo6ZmlsdGVyKHJlbW90ZSA9PSAxIHwgY2F0ZWdvcnkgPT0gImludGVybnNoaXAiKSB8PiBucm93KCksDQogIGluX3NldCAgID0gam9icyB8PiBkcGx5cjo6ZmlsdGVyKGxvY2F0aW9uX3N0YXRlICVpbiUgYygiT0giLCAiSU4iLCAiS1kiKSkgfD4gbnJvdygpKQ0KYGBgDQoNCiMgTXV0YXRlIGFuZCBBcnJhbmdlDQpgYGB7ciBtdXRhdGUgYW5kIGFycmFuZ2V9DQpqb2JzID0gam9icyB8Pg0KICBkcGx5cjo6bXV0YXRlKGRheXNfb3BlbiA9IGFzLm51bWVyaWMoYXMuRGF0ZShsYXN0X3NlZW5fYXQpIC0gYXMuRGF0ZShwb3N0ZWRfYXQpKSkNCg0Kam9icyB8PiBkcGx5cjo6YXJyYW5nZShkcGx5cjo6ZGVzYyhkYXlzX29wZW4pKSB8PiBkcGx5cjo6c2VsZWN0KGNvbXBhbnksIHRpdGxlLCBkYXlzX29wZW4pDQoNCmpvYnMgPSBqb2JzIHw+IGRwbHlyOjptdXRhdGUoZHBseXI6OmFjcm9zcyhkcGx5cjo6ZW5kc193aXRoKCJfYXQiKSwgYXMuRGF0ZSkpICAgICMgYm90aCBkYXRlcyBhdCBvbmNlDQpqb2JzIHw+IGRwbHlyOjpzdW1tYXJpemUoZHBseXI6OmFjcm9zcyhkcGx5cjo6d2hlcmUoaXMubnVtZXJpYyksIG1lYW4pKQ0KYGBgDQoNCiMgR3JvdXAgQnkgYW5kIFN1bW1hcml6ZQ0KYGBge3IgZ3JvdXAgYnkgYW5kIHN1bW1hcml6ZX0NCmpvYnMgfD4NCiAgZHBseXI6Omdyb3VwX2J5KGxvY2F0aW9uX3N0YXRlKSB8Pg0KICBkcGx5cjo6c3VtbWFyaXplKHBvc3RpbmdzID0gZHBseXI6Om4oKSwgcmVtb3RlX3NoYXJlID0gbWVhbihyZW1vdGUpKSB8Pg0KICBkcGx5cjo6YXJyYW5nZShkcGx5cjo6ZGVzYyhwb3N0aW5ncykpDQpgYGANCg0KIyBKb2luDQpgYGB7ciBqb2lufQ0Kc3RhdGVzID0gdGliYmxlOjp0aWJibGUobG9jYXRpb25fc3RhdGUgPSBzdGF0ZS5hYmIsDQogICAgICAgICAgICAgICAgICAgICAgICBzdGF0ZV9uYW1lID0gc3RhdGUubmFtZSwNCiAgICAgICAgICAgICAgICAgICAgICAgIHJlZ2lvbiA9IGFzLmNoYXJhY3RlcihzdGF0ZS5yZWdpb24pKQ0KDQpqb2JzIHw+DQogIGRwbHlyOjpsZWZ0X2pvaW4oc3RhdGVzLCBieSA9ICJsb2NhdGlvbl9zdGF0ZSIpIHw+DQogIGRwbHlyOjpncm91cF9ieShyZWdpb24pIHw+DQogIGRwbHlyOjpzdW1tYXJpemUocG9zdGluZ3MgPSBkcGx5cjo6bigpLCByZW1vdGVfc2hhcmUgPSBtZWFuKHJlbW90ZSkpIHw+DQogIGRwbHlyOjphcnJhbmdlKGRwbHlyOjpkZXNjKHBvc3RpbmdzKSkNCg0Kam9icyB8PiBkcGx5cjo6Y291bnQobG9jYXRpb25fc3RhdGUpIHw+IGRwbHlyOjphbnRpX2pvaW4oc3RhdGVzLCBieSA9ICJsb2NhdGlvbl9zdGF0ZSIpDQoNCmBgYA0KDQojIEFpcmJuYg0KYGBge3IgYWlyYm5ifQ0KY29uID0gREJJOjpkYkNvbm5lY3QoUlNRTGl0ZTo6U1FMaXRlKCksICIuLi9kYXRhL21pZHdlc3RfYWlyYm5iLmRiIikNCmxpc3RpbmdzID0gREJJOjpkYlJlYWRUYWJsZShjb24sICJsaXN0aW5ncyIpIHw+DQogIHRpYmJsZTo6YXNfdGliYmxlKCkNCkRCSTo6ZGJEaXNjb25uZWN0KGNvbikNCmRwbHlyOjpnbGltcHNlKGxpc3RpbmdzKQ0KDQojIExpc3RpbmdzIHBlciBjaXR5DQpsaXN0aW5nc19wZXJfY2l0eSA9IGxpc3RpbmdzIHw+DQogIGRwbHlyOjpncm91cF9ieShjaXR5KSB8Pg0KICBkcGx5cjo6c3VtbWFyaXNlKA0KICAgIG5fbGlzdGluZ3MgPSBkcGx5cjo6bigpDQogICkNCmxpc3RpbmdzX3Blcl9jaXR5DQoNCmxpc3RpbmdzIHw+DQogIGRwbHlyOjpjb3VudChjaXR5KSAjY291bnQgZG9lcyBncm91cCBieSBhbmQgdGhlbiBuKCkNCg0KIyB0aGUgb3RoZXIgb3B0aW9uIGlzIHRvIHNpbXBseSBjb3VudCB0aGUgbnVtYmVyIG9mIHRpbWVzIGVhY2ggY2l0eSBvY2N1cnJlZCBpbiBjb2wgY2l0eQ0KdGFibGUobGlzdGluZ3MkY2l0eSkgIyByZXR1cm5zIGEgbmFtZWQgdmVjdG9yIHZzLiBhYm92ZSB3ZSBnZXQgYSBkYXRhLmZyYW1lL3RpYmJsZQ0KDQojIEZvciBlbnRpcmUgaG9tZXMgdGhhdCBzbGVlcCA0IG9yIG1vcmUsIHdoYXQgaXMgdGhlIG1lZGlhbiBwcmljZSBwZXIgY2l0eQ0KZW50aXJlX3NsZWVwczQgPSBsaXN0aW5ncyB8Pg0KICBkcGx5cjo6ZmlsdGVyKHJvb21fdHlwZSA9PSAiRW50aXJlIGhvbWUvYXB0IiwgYWNjb21tb2RhdGVzID49NCkNCg0KbWVkaWFuX3ByaWNlX2NpdHkgPSBlbnRpcmVfc2xlZXBzNCB8Pg0KICBkcGx5cjo6Z3JvdXBfYnkoY2l0eSkgfD4NCiAgZHBseXI6OnN1bW1hcmlzZSgNCiAgICBtZWRpYW5fcHJpY2UgPSBtZWRpYW4ocHJpY2UpDQogICkNCm1lZGlhbl9wcmljZV9jaXR5DQoNCiMgQWx0ZXJuYXRpdmUNCmxpc3RpbmdzIHw+DQogIGRwbHlyOjpmaWx0ZXIocm9vbV90eXBlID09ICJFbnRpcmUgaG9tZS9hcHQiLCBhY2NvbW1vZGF0ZXMgPj00KSB8Pg0KICBkcGx5cjo6Z3JvdXBfYnkoY2l0eSkgfD4NCiAgZHBseXI6OnN1bW1hcmlzZShtZWRpYW5fcHJpY2UgPSBtZWRpYW4ocHJpY2UpKQ0KDQojIENoZWFwZXN0IGxpc3RpbmcgcGVyIHBlcnNvbg0KbGlzdGluZ3MgfD4NCiAgZHBseXI6Om11dGF0ZShwcmljZV9wZXJfcGVyc29uID0gcHJpY2UvYWNjb21tb2RhdGVzKSB8Pg0KICBkcGx5cjo6c2VsZWN0KGNpdHksIGhvc3RfbmFtZSxuYW1lLCBwcmljZSwgYWNjb21tb2RhdGVzLCBwcmljZV9wZXJfcGVyc29uKSB8Pg0KICBkcGx5cjo6YXJyYW5nZShwcmljZV9wZXJfcGVyc29uKSB8Pg0KICBoZWFkKDMpDQoNCiMgSG9zdCBuYW1lcyB3aXRoIG1vc3QgbGlzdGluZ3MgaG9zdF9uYW1lcyBhcmUgbm90IHVuaXF1ZSwgaG9zdF9pZHMgYXJlDQpob3N0X2NvdW50cyA9IGxpc3RpbmdzIHw+DQogIGRwbHlyOjpjb3VudChob3N0X25hbWUsIGhvc3RfaWQsIHNvcnQgPSBUKSANCmhvc3RfY291bnRzDQpgYGANCg0K</div>
 
 
 </div>
