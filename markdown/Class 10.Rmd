@@ -1,0 +1,68 @@
+---
+title: "Class 10.1"
+author: "Joseph Sher"
+date: "2026-09-28"
+output: 
+  html_document:
+    toc: TRUE
+    toc_float: TRUE
+    numbered_sections: TRUE
+    code_download: TRUE
+    code_folding: show
+    
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## `robotstxt` example: MU bulletin
+
+In the chunk below, we used the [robotstxt package] to check if we are allowed to write a program that scrapes the page
+
+
+```{r robotstxt}
+robotstxt::paths_allowed(paths = "/courses-instruction/isa/", domain = "bulletin.miamioh.edu", bot = "*")
+```
+
+## Example 1 `robotstxt`
+```{r practice}
+robotstxt::paths_allowed(paths = "/wiki/Miami_RedHawks_football", domain = "en.wikipedia.org",bot = "*")
+robotstxt::paths_allowed(paths = "/jobs/",domain = "www.linkedin.com", bot = "*") # in some cases, the robotstxt provides inconsistent answers
+# typically, you get a warning with the answer that is incorrect
+# solution: drop the trailing slash from the url
+# even better check with the robots.txt (whivh is the ground truth)
+robotstxt::paths_allowed(paths = "/jobs", domain = "www.indeed.com", bot = "*")
+robotstxt::paths_allowed(paths = "/viewjob",domain = "www.indeed.com", bot="*")
+```
+
+# Scrape Miami's bulletin for ISA
+```{r scrape bulletin}
+# checking whether we are allowed to scrape this info, which was found to be true above
+
+# I will load the backend of the HTML into R using 
+# [a] rvest::read_html() | sometimes rvest::read_html_live() if the page has some dynamic content
+# [b] in some cases, we will craft this as a request as shown in slides httr2::request() > ... > htrr2::resp_body_html()
+
+isa_courses_in_r = rvest::read_html("https://bulletin.miamioh.edu/courses-instruction/isa/")
+
+# We will extract the course titles, which we can do in a single pipeline
+# given that they look the same on the rendered web page in Chrome
+# bolded, same font size and same font type
+
+#CSS Selector was obtained by:
+# [highlighting what we wanted to pull (ISA 401) =-> right click  inspect -> right click > copy > copy selector]
+# from this example, we were able to get just the title for ISA 401 because we had `:nth-child(24)` -> if you were to drop it, you get all the course titles
+isa_courses_in_r |>
+  rvest::html_elements("#sc_sccoursedescs > div > p.courseblocktitle > strong") |>
+  rvest::html_text2() -> isa_titles
+
+# course description [using selector gadget, which doesn't always work]
+isa_courses_in_r |>
+  rvest::html_elements(".courseblockdesc") |>
+  rvest::html_text2() -> isa_desc
+
+df=data.frame(title=isa_titles, description = isa_desc)
+df
+```
+
