@@ -1,0 +1,76 @@
+---
+title: "HW7"
+author: "Joseph Sher"
+date: "2026-10-05"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+
+# Establish a function 
+```{r department function}
+
+scrape_department_fsb = function(dept){
+  dept_url = paste0("https://miamioh.edu/fsb/directory/?up=/query/all/all/",dept, "/all")
+  
+  webpage=rvest::read_html(dept_url)
+  
+  department_name = webpage |>
+    rvest::html_elements("tr > td:nth-child(1)")|> rvest::html_text2()
+  
+  faculty_name = webpage |> 
+    rvest::html_elements("tr > td:nth-child(3) > strong") |> rvest::html_text2()
+  
+  faculty_position = webpage |>
+    rvest::html_elements("tr > td:nth-child(3) > i") |> rvest::html_text2()
+  
+  faculty_website = webpage |>
+    rvest::html_elements("tr > td:nth-child(3) > strong > a") |> rvest::html_attr(name = 'href')
+  
+  deptdf = data.frame(department = department_name, staff = faculty_name, position = faculty_position, website = faculty_website)
+  
+  return(deptdf)
+}
+
+acc_data = scrape_department_fsb(dept = "Accountancy")
+eco_data = scrape_department_fsb(dept = "Economics")
+esp_data = scrape_department_fsb(dept = "Entrepreneurship")
+fin_data = scrape_department_fsb(dept = "Finance")
+isa_data = scrape_department_fsb(dept = "Information_Systems_and_Analytics")
+mkt_data = scrape_department_fsb(dept = "Marketing")
+mgt_data = scrape_department_fsb(dept = "Management")
+
+fsb_data = dplyr::bind_rows(acc_data,
+                            eco_data,
+                            esp_data,
+                            fin_data,
+                            isa_data,
+                            mkt_data,
+                            mgt_data)
+
+head(fsb_data)
+
+
+```
+
+```{r for}
+dept_name = c("Accountancy","Economics","Entrepreneurship","Finance", "Information_Systems_and_Analytics", "Marketing", "Management")
+
+dept.df = data.frame()
+
+for (dept in dept_name) {
+  print(dept)
+  
+  df = scrape_department_fsb(dept)
+  
+  dept.df = rbind(dept.df,df)
+  
+}
+head(dept.df)
+DT::datatable(dept.df, options = list(pageLength=6))
+```
+
