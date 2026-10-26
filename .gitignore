@@ -3,3 +3,7 @@ rmarkdown.pdf
 .Renviron
 /.shinychat
 /shiny_bookmarks
+data/L_UNIQUE_CARRIERS.csv
+data/T_ONTIME_August_2026.csv
+data/T_ONTIME_July_2026.csv
+data/ohio_covid.csv
